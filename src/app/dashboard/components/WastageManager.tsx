@@ -5,69 +5,98 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Recycle, Loader2 } from 'lucide-react';
+import { HelpingHand, Loader2, Bot, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { suggestDonation, SuggestDonationOutput } from '@/ai/flows/suggest-donation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function WastageManager() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isDonating, setIsDonating] = useState(false);
+  const [aiResult, setAiResult] = useState<SuggestDonationOutput | null>(null);
+  const [foodItem, setFoodItem] = useState('');
+  const [quantity, setQuantity] = useState('');
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleGenerateSuggestion = async () => {
+    if (!foodItem || !quantity) {
+        toast({ title: 'Missing Information', description: 'Please enter a food item and quantity.', variant: 'destructive'});
+        return;
+    }
     setIsLoading(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({ title: 'Success', description: 'Wastage report submitted successfully.'});
-    setIsLoading(false);
-    (e.target as HTMLFormElement).reset();
+    setAiResult(null);
+    try {
+      const result = await suggestDonation({ foodItem, quantity: parseFloat(quantity) });
+      setAiResult(result);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'AI Suggestion Failed', description: 'Could not generate donation suggestions.', variant: 'destructive'});
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
+  const handleNotify = async () => {
+    setIsDonating(true);
+    // Simulate notifying NGOs
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast({ title: 'NGOs Notified', description: 'A notification has been sent out for the food donation.'});
+    setIsDonating(false);
+  }
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-            <Recycle className="h-6 w-6 text-primary" />
-            <CardTitle className="font-headline">Wastage Manager</CardTitle>
+            <HelpingHand className="h-6 w-6 text-primary" />
+            <CardTitle className="font-headline">Wastage & Donation Manager</CardTitle>
         </div>
-        <CardDescription>Log and categorize food wastage to identify patterns and reduce loss.</CardDescription>
+        <CardDescription>Log surplus food and coordinate its donation to people in need.</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                    <Label htmlFor="meal-type">Meal Type</Label>
-                    <Select name="meal-type" required>
-                        <SelectTrigger id="meal-type">
-                            <SelectValue placeholder="Select meal..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="breakfast">Breakfast</SelectItem>
-                            <SelectItem value="lunch">Lunch</SelectItem>
-                            <SelectItem value="snack">Snack</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="wastage-amount">Wastage Amount (kg)</Label>
-                    <Input id="wastage-amount" name="wastage-amount" type="number" placeholder="e.g., 2.5" required min="0" step="0.1"/>
-                </div>
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="wastage-reason">Reason for Wastage</Label>
-                <Textarea id="wastage-reason" name="wastage-reason" placeholder="e.g., Over-preparation, student absenteeism..." required />
-            </div>
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isLoading ? 'Submitting...' : 'Submit Wastage Report'}
+      <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                  <Label htmlFor="food-item">Food Item</Label>
+                  <Input id="food-item" name="food-item" placeholder="e.g., Rice and Dal" required value={foodItem} onChange={(e) => setFoodItem(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="wastage-amount">Surplus Amount (kg)</Label>
+                  <Input id="wastage-amount" name="wastage-amount" type="number" placeholder="e.g., 5" required min="0" step="0.1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+              </div>
+          </div>
+          <Button onClick={handleGenerateSuggestion} disabled={isLoading || !foodItem || !quantity} className="w-full">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2" />}
+                {isLoading ? 'Generating...' : 'Get AI Donation Suggestions'}
           </Button>
-        </CardFooter>
-      </form>
+
+          {aiResult && (
+            <Alert>
+                <Bot className="h-4 w-4" />
+                <AlertTitle>AI Donation Plan</AlertTitle>
+                <AlertDescription className="space-y-4">
+                    <div>
+                        <h4 className="font-semibold">Generated Message for NGOs:</h4>
+                        <p className="text-sm text-muted-foreground">"{aiResult.donationMessage}"</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold">Suggested Charities:</h4>
+                        <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {aiResult.suggestedCharities.map(charity => (
+                                <li key={charity.name}><strong>{charity.name}</strong> - {charity.address}</li>
+                            ))}
+                        </ul>
+                    </div>
+                     <Button onClick={handleNotify} disabled={isDonating} className="w-full mt-4">
+                        {isDonating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2" />}
+                        {isDonating ? 'Notifying...' : 'Notify NGOs for Pickup'}
+                    </Button>
+                </AlertDescription>
+            </Alert>
+          )}
+
+      </CardContent>
     </Card>
   );
 }

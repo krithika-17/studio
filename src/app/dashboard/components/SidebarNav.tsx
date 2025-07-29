@@ -1,5 +1,5 @@
 'use client';
-import { LayoutDashboard, UtensilsCrossed, Camera, Megaphone, Recycle, Receipt } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Camera, Megaphone, HelpingHand, Receipt } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,7 +11,7 @@ export function SidebarNav() {
     { href: '/dashboard/meal-forecaster', label: 'Meal Forecaster', icon: UtensilsCrossed },
     { href: '/dashboard/hygiene-report', label: 'Hygiene Report', icon: Camera },
     { href: '/dashboard/feedback', label: 'Feedback', icon: Megaphone },
-    { href: '/dashboard/wastage-manager', label: 'Wastage Manager', icon: Recycle },
+    { href: '/dashboard/wastage-manager', label: 'Donation Manager', icon: HelpingHand },
     { href: '/dashboard/expense-tracker', label: 'Expense Tracker', icon: Receipt },
   ];
 
