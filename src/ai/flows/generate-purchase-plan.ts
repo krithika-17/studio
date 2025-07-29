@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview AI agent for generating a smart purchase plan for a specific meal.
+ * @fileOverview AI agent for generating a smart purchase plan for a specific meal, including cost estimation.
  *
- * - generatePurchasePlan - Generates a purchase plan for a meal.
+ * - generatePurchasePlan - Generates a purchase plan for a meal with costs.
  * - GeneratePurchasePlanInput - Input type for the generatePurchasePlan function.
  * - GeneratePurchasePlanOutput - Return type for the generatePurchasePlan function.
  */
@@ -20,10 +20,12 @@ export type GeneratePurchasePlanInput = z.infer<typeof GeneratePurchasePlanInput
 const IngredientSchema = z.object({
     item: z.string().describe("The ingredient name."),
     quantity: z.string().describe("The quantity to purchase (e.g., '45 kg', '3 L')."),
+    estimatedCost: z.number().describe("The estimated cost for the ingredient in INR."),
 });
 
 const GeneratePurchasePlanOutputSchema = z.object({
-  purchaseList: z.array(IngredientSchema).describe("A list of ingredients and their quantities to purchase."),
+  purchaseList: z.array(IngredientSchema).describe("A list of ingredients, their quantities, and estimated costs to purchase."),
+  totalEstimatedCost: z.number().describe("The total estimated cost for all ingredients in INR."),
 });
 export type GeneratePurchasePlanOutput = z.infer<typeof GeneratePurchasePlanOutputSchema>;
 
@@ -39,7 +41,10 @@ const prompt = ai.definePrompt({
   output: {schema: GeneratePurchasePlanOutputSchema},
   prompt: `You are an expert purchase manager for a school's Mid-Day Meal program. Your task is to create a smart purchase plan for a specific meal for a given number of students.
 
-  The plan should list all the necessary ingredients and the quantities required to prepare the meal for {{{numberOfStudents}}} students.
+  The plan should list all the necessary ingredients, the quantities required, and an estimated cost in INR for each ingredient to prepare the meal for {{{numberOfStudents}}} students.
+  Also provide a total estimated cost for all ingredients.
+
+  Use current, realistic market prices for ingredients in India.
 
   Meal: {{{mealName}}}
   Number of Students: {{{numberOfStudents}}}
