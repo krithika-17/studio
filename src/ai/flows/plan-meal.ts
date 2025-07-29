@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const PlanMealInputSchema = z.object({
   state: z.string().describe('The state in India for which to plan the meal (e.g., "Tamil Nadu", "Punjab").'),
-  culturalFocus: z.string().describe('Specific cultural or regional focus for the meal (e.g., "South Indian", "Punjabi").'),
+  dietaryRestrictions: z.string().optional().describe('Any dietary restrictions to consider (e.g., "gluten-free", "vegan", "nut-free").'),
 });
 export type PlanMealInput = z.infer<typeof PlanMealInputSchema>;
 
@@ -53,9 +53,10 @@ const prompt = ai.definePrompt({
 
   Consider the following:
   - The plan is for children in the state of {{{state}}}.
-  - The meal should reflect {{{culturalFocus}}} culinary traditions.
+  - The meal should reflect the local culinary traditions of the state.
   - The meal should be cost-effective and use locally available ingredients.
   - The meal should be balanced with essential nutrients (proteins, carbohydrates, fats, vitamins, minerals).
+  {{#if dietaryRestrictions}}- The meal must adhere to the following dietary restrictions: {{{dietaryRestrictions}}}.{{/if}}
 
   Generate a meal plan with a name, description, estimated calorie count, and nutrient breakdown (protein, carbohydrates, fats as percentages) for each meal.
   `,

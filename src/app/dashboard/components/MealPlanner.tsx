@@ -54,18 +54,18 @@ export function MealPlanner() {
   const [isLoading, setIsLoading] = useState(false);
   const [aiResult, setAiResult] = useState<PlanMealOutput | null>(null);
   const [state, setState] = useState('');
-  const [culture, setCulture] = useState('');
+  const [dietaryRestrictions, setDietaryRestrictions] = useState('');
   const { toast } = useToast();
 
   const handleGeneratePlan = async () => {
-    if (!state || !culture) {
-        toast({ title: 'Missing Information', description: 'Please enter a state and cultural focus.', variant: 'destructive'});
+    if (!state) {
+        toast({ title: 'Missing Information', description: 'Please enter a state.', variant: 'destructive'});
         return;
     }
     setIsLoading(true);
     setAiResult(null);
     try {
-      const result = await planMeal({ state: state, culturalFocus: culture });
+      const result = await planMeal({ state, dietaryRestrictions: dietaryRestrictions || undefined });
       setAiResult(result);
       toast({ title: 'Meal Plan Generated', description: 'The AI has successfully created a meal plan.' });
     } catch (error) {
@@ -92,11 +92,11 @@ export function MealPlanner() {
                   <Input id="state" name="state" placeholder="e.g., Punjab" required value={state} onChange={(e) => setState(e.target.value)} />
               </div>
               <div className="space-y-2">
-                  <Label htmlFor="culture">Cultural Focus</Label>
-                  <Input id="culture" name="culture" placeholder="e.g., Punjabi" required value={culture} onChange={(e) => setCulture(e.target.value)} />
+                  <Label htmlFor="dietary-restrictions">Dietary Restrictions (Optional)</Label>
+                  <Input id="dietary-restrictions" name="dietary-restrictions" placeholder="e.g., Vegan, Gluten-free" value={dietaryRestrictions} onChange={(e) => setDietaryRestrictions(e.target.value)} />
               </div>
           </div>
-          <Button onClick={handleGeneratePlan} disabled={isLoading || !state || !culture} className="w-full">
+          <Button onClick={handleGeneratePlan} disabled={isLoading || !state} className="w-full">
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2" />}
                 {isLoading ? 'Generating Plan...' : 'Generate AI Meal Plan'}
           </Button>
