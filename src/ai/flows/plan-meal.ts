@@ -17,10 +17,17 @@ const PlanMealInputSchema = z.object({
 });
 export type PlanMealInput = z.infer<typeof PlanMealInputSchema>;
 
+const NutrientSchema = z.object({
+    protein: z.number().describe('Percentage of protein.'),
+    carbohydrates: z.number().describe('Percentage of carbohydrates.'),
+    fats: z.number().describe('Percentage of fats.'),
+});
+
 const MealSchema = z.object({
     name: z.string().describe("The name of the dish."),
     description: z.string().describe("A brief description of the dish and its ingredients."),
     calories: z.number().describe("Estimated calorie count."),
+    nutrients: NutrientSchema.describe("Nutrient breakdown as percentages (protein, carbohydrates, fats). The sum should be 100."),
 });
 
 const PlanMealOutputSchema = z.object({
@@ -50,7 +57,7 @@ const prompt = ai.definePrompt({
   - The meal should be cost-effective and use locally available ingredients.
   - The meal should be balanced with essential nutrients (proteins, carbohydrates, fats, vitamins, minerals).
 
-  Generate a meal plan with a name, description, and estimated calorie count for each meal.
+  Generate a meal plan with a name, description, estimated calorie count, and nutrient breakdown (protein, carbohydrates, fats as percentages) for each meal.
   `,
 });
 

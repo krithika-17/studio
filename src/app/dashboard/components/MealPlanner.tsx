@@ -9,8 +9,22 @@ import { Bot, Loader2, CookingPot, Soup, Salad, Cookie } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { planMeal, PlanMealOutput } from '@/ai/flows/plan-meal';
+import { Progress } from '@/components/ui/progress';
 
-function MealCard({ title, meal, icon }: { title: string, meal: { name: string; description: string; calories: number }, icon: React.ReactNode }) {
+
+function NutrientBar({ label, value, colorClass }: { label: string, value: number, colorClass: string }) {
+    return (
+        <div>
+            <div className="flex justify-between text-xs">
+                <span className="font-medium">{label}</span>
+                <span>{value}%</span>
+            </div>
+            <Progress value={value} className="h-2 mt-1" indicatorClassName={colorClass} />
+        </div>
+    )
+}
+
+function MealCard({ title, meal, icon }: { title: string, meal: { name: string; description: string; calories: number; nutrients: { protein: number; carbohydrates: number; fats: number; } }, icon: React.ReactNode }) {
     return (
         <Card>
             <CardHeader>
@@ -19,10 +33,18 @@ function MealCard({ title, meal, icon }: { title: string, meal: { name: string; 
                     <CardTitle>{title}</CardTitle>
                 </div>
             </CardHeader>
-            <CardContent>
-                <h4 className="font-semibold">{meal.name}</h4>
-                <p className="text-sm text-muted-foreground">{meal.description}</p>
-                <p className="text-sm font-bold mt-2">{meal.calories} kcal</p>
+            <CardContent className="space-y-4">
+                <div>
+                    <h4 className="font-semibold">{meal.name}</h4>
+                    <p className="text-sm text-muted-foreground">{meal.description}</p>
+                    <p className="text-sm font-bold mt-2">{meal.calories} kcal</p>
+                </div>
+                <div className="space-y-2">
+                    <h5 className="font-medium text-sm">Nutrient Breakdown</h5>
+                    <NutrientBar label="Protein" value={meal.nutrients.protein} colorClass="bg-green-500" />
+                    <NutrientBar label="Carbs" value={meal.nutrients.carbohydrates} colorClass="bg-blue-500" />
+                    <NutrientBar label="Fats" value={meal.nutrients.fats} colorClass="bg-yellow-500" />
+                </div>
             </CardContent>
         </Card>
     )
@@ -61,7 +83,7 @@ export function MealPlanner() {
             <CookingPot className="h-6 w-6 text-primary" />
             <CardTitle className="font-headline">AI Meal Planner</CardTitle>
         </div>
-        <CardDescription>Generate balanced, nutritious, and culturally-appropriate meal plans.</CardDescription>
+        <CardDescription>Generate balanced, nutritious, and culturally-appropriate meal plans with detailed nutrient breakdowns.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
