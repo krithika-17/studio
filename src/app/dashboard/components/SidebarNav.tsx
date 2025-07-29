@@ -8,9 +8,9 @@ export function SidebarNav() {
   const pathname = usePathname();
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '#', label: 'Meal Forecaster', icon: UtensilsCrossed },
-    { href: '#', label: 'Hygiene Report', icon: Camera },
-    { href: '#', label: 'Feedback', icon: Megaphone },
+    { href: '/dashboard/meal-forecaster', label: 'Meal Forecaster', icon: UtensilsCrossed },
+    { href: '/dashboard/hygiene-report', label: 'Hygiene Report', icon: Camera },
+    { href: '/dashboard/feedback', label: 'Feedback', icon: Megaphone },
   ];
 
   return (
@@ -18,7 +18,7 @@ export function SidebarNav() {
       {navItems.map((item) => (
         <SidebarMenuItem key={item.label}>
           <Link href={item.href} passHref>
-            <SidebarMenuButton asChild isActive={pathname === item.href && item.href !== '#'} tooltip={item.label}>
+            <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
               <div className="flex items-center gap-3">
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>

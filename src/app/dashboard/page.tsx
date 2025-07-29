@@ -1,8 +1,5 @@
 import { Header } from './components/Header';
 import { StatsCards } from './components/StatsCards';
-import { MealForecaster } from './components/MealForecaster';
-import { HygieneReport } from './components/HygieneReport';
-import { Feedback } from './components/Feedback';
 import { AttendanceChart } from './components/AttendanceChart';
 import { SchoolCalendar } from './components/SchoolCalendar';
 
@@ -14,12 +11,9 @@ export default function DashboardPage() {
         <StatsCards />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            <MealForecaster />
             <AttendanceChart />
           </div>
           <div className="space-y-6 lg:col-span-1">
-            <HygieneReport />
-            <Feedback />
             <SchoolCalendar />
           </div>
         </div>
