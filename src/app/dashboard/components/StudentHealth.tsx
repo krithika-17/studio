@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { HeartPulse, QrCode } from 'lucide-react';
+import { HeartPulse, QrCode, ScanLine, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import QRCode from 'qrcode';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import jsQR from 'jsqr';
 
 const students = [
     { id: 'S001', name: 'Rohan Sharma', status: 'Good', statusVariant: 'default', details: 'Normal growth and active.'},
@@ -30,60 +33,137 @@ export function StudentHealth() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>();
+  const { toast } = useToast();
+
+  const selectStudent = (studentId: string) => {
+    const student = students.find(s => s.id === studentId) || null;
+    setSelectedStudent(student);
+    setSelectedStudentId(studentId);
+
+    if(student) {
+        const qrData = JSON.stringify({
+            studentId: student.id,
+            name: student.name,
+            status: student.status,
+        });
+        QRCode.toDataURL(qrData)
+            .then(url => {
+                setQrCodeUrl(url);
+            })
+            .catch(err => {
+                console.error(err);
+                setQrCodeUrl(null);
+            });
+    } else {
+         setQrCodeUrl(null);
+    }
+  }
 
   useEffect(() => {
     if(selectedStudentId) {
-        const student = students.find(s => s.id === selectedStudentId) || null;
-        setSelectedStudent(student);
-
-        if(student) {
-            const qrData = JSON.stringify({
-                studentId: student.id,
-                name: student.name,
-                status: student.status,
-                // In a real app, this would be a secure link to the student's health profile
-                profileUrl: `/dashboard/student-health/${student.id}` 
-            });
-            QRCode.toDataURL(qrData)
-                .then(url => {
-                    setQrCodeUrl(url);
-                })
-                .catch(err => {
-                    console.error(err);
-                    setQrCodeUrl(null);
-                });
-        } else {
-             setQrCodeUrl(null);
-        }
-
+        selectStudent(selectedStudentId)
     } else {
         setSelectedStudent(null);
         setQrCodeUrl(null);
     }
   }, [selectedStudentId]);
 
+  const tick = () => {
+    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+        if(canvasRef.current){
+            const canvas = canvasRef.current;
+            const video = videoRef.current;
+            const context = canvas.getContext('2d');
+
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            if(context){
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: 'dontInvert',
+                });
+
+                if (code) {
+                    try {
+                        const data = JSON.parse(code.data);
+                        if(data.studentId && students.some(s => s.id === data.studentId)) {
+                            selectStudent(data.studentId);
+                            toast({ title: 'Student Found!', description: `Displaying health status for ${data.name}.` });
+                            stopScan();
+                        }
+                    } catch(e) {
+                         toast({ title: 'Invalid QR Code', description: 'This QR code is not a valid student health card.', variant: 'destructive' });
+                         stopScan();
+                    }
+                }
+            }
+        }
+    }
+    requestRef.current = requestAnimationFrame(tick);
+  };
+  
+  const startScan = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        if(videoRef.current) {
+            videoRef.current.srcObject = stream;
+            setIsScannerOpen(true);
+            requestRef.current = requestAnimationFrame(tick);
+        }
+      } catch (error) {
+          console.error("Error accessing camera: ", error);
+          toast({ title: 'Camera Error', description: 'Could not access the camera. Please check permissions.', variant: 'destructive' });
+      }
+  };
+
+  const stopScan = () => {
+    setIsScannerOpen(false);
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    if (requestRef.current) {
+      cancelAnimationFrame(requestRef.current);
+    }
+  };
+
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
             <HeartPulse className="h-6 w-6 text-primary" />
             <CardTitle className="font-headline">Student Health Status</CardTitle>
         </div>
-        <CardDescription>Select a student to view their health status and generate a QR code for their profile.</CardDescription>
+        <CardDescription>Select a student to view their health status, or scan a QR code to look them up.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-          <div className="space-y-2">
-              <Label htmlFor="student-select">Select Student</Label>
-               <Select onValueChange={setSelectedStudentId} value={selectedStudentId}>
-                <SelectTrigger id="student-select">
-                    <SelectValue placeholder="Select a student..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {students.map(student => (
-                        <SelectItem key={student.id} value={student.id}>{student.name} ({student.id})</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label htmlFor="student-select">Select Student</Label>
+                   <Select onValueChange={setSelectedStudentId} value={selectedStudentId}>
+                    <SelectTrigger id="student-select">
+                        <SelectValue placeholder="Select a student..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {students.map(student => (
+                            <SelectItem key={student.id} value={student.id}>{student.name} ({student.id})</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+               <div className="space-y-2">
+                    <Label>Scan QR Code</Label>
+                    <Button onClick={startScan} variant="outline" className="w-full">
+                        <ScanLine className="mr-2"/> Scan Student QR Code
+                    </Button>
+               </div>
           </div>
           
           {selectedStudent && (
@@ -113,7 +193,6 @@ export function StudentHealth() {
                 </CardContent>
             </Card>
           )}
-
       </CardContent>
        <CardFooter>
           <Button disabled={!qrCodeUrl} className="w-full">
@@ -122,5 +201,25 @@ export function StudentHealth() {
           </Button>
       </CardFooter>
     </Card>
+    <Dialog open={isScannerOpen} onOpenChange={(open) => !open && stopScan()}>
+        <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle>Scan Student QR Code</DialogTitle>
+                <DialogDescription>Point your camera at the QR code on the student's health card.</DialogDescription>
+            </DialogHeader>
+            <div className="relative">
+                <video ref={videoRef} className="w-full h-auto rounded-md bg-muted" autoPlay playsInline />
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-64 h-64 border-4 border-primary/50 rounded-lg" />
+                </div>
+            </div>
+            <canvas ref={canvasRef} className="hidden" />
+             <Button variant="outline" onClick={stopScan}>
+                <X className="mr-2"/>
+                Cancel
+            </Button>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
