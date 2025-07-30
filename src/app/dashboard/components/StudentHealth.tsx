@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import QRCode from 'qrcode';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 const students = [
     { id: 'S001', name: 'Rohan Sharma', status: 'Good', statusVariant: 'default', details: 'Normal growth and active.'},
